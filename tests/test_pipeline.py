@@ -5,7 +5,7 @@ Runs signature_builder.py against the committed config.json (placeholders
 only) and asserts the compiled HTML is email-safe. Also asserts config.json
 itself never carries real PII or leftover per-run upload caches, since a
 prior session accidentally shipped a runtime cache block containing a real
-name (see CLAUDE.md's whitelabeling notes) — this pins that down.
+name — this pins that down.
 """
 from __future__ import annotations
 

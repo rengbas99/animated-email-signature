@@ -25,9 +25,6 @@ Node.js Server (src/server.js)
 Copy for Gmail / Copy Raw HTML  → paste into your email client
 ```
 
-Full step-by-step detail (including the frame-capture mechanics and GIF
-encoder fallback chain) lives in `PRODUCT_FLOW.md`.
-
 ---
 
 ## Setup
