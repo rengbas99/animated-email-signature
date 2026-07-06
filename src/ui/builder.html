@@ -312,10 +312,18 @@ const $ = id => document.getElementById(id);
 let photoURL = null; // uploaded photo as data URL
 let logoURL = null;  // uploaded logo as data URL
 
+// Generic neutral placeholders shown before the user uploads their own photo/logo
+const PLACEHOLDER_PHOTO = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#EEF0F7"/><circle cx="100" cy="78" r="34" fill="#C8D0DC"/><path d="M30 190 Q100 120 170 190 Z" fill="#C8D0DC"/></svg>'
+);
+const PLACEHOLDER_LOGO = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 32"><rect width="120" height="32" rx="4" fill="#EEF0F7"/><text x="60" y="21" font-family="Arial,sans-serif" font-size="12" fill="#C8D0DC" text-anchor="middle">LOGO</text></svg>'
+);
+
 function fmtUrl(u){ if(!u) return '#'; return u.startsWith('http')?u:'https://'+u; }
 
 function applyPhoto(){
-  const bg = photoURL ? `url('${photoURL}')` : 'none';
+  const bg = `url('${photoURL || PLACEHOLDER_PHOTO}')`;
   ['img-circle','img-para','img-s1','img-s2','img-s3','img-s4'].forEach(id=>{ $(id).style.backgroundImage = bg; });
 }
 
@@ -405,7 +413,7 @@ function sync(){
   }
   
   // Logo
-  const logoSrc = logoURL || $('flogo_url').value || '';
+  const logoSrc = logoURL || $('flogo_url').value || PLACEHOLDER_LOGO;
   $('pv-logo-img').src = logoSrc;
   
   // Social icons links
