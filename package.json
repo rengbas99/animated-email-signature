@@ -1,0 +1,19 @@
+{
+  "name": "animated-email-signature",
+  "version": "1.0.0",
+  "description": "Custom animated company email signature builder",
+  "private": true,
+  "scripts": {
+    "build:exporter": "node src/generator/clipboard_exporter.js",
+    "preview": "open output/signature_final.html",
+    "build": "bash scripts/build.sh",
+    "test:python": "pytest tests/ -v"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "puppeteer": "^24.43.1"
+  }
+}

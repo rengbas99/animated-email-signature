@@ -1,0 +1,4 @@
+Jinja2>=3.1.0
+pytest>=7.0.0
+cloudinary>=1.36.0
+python-dotenv>=1.0.0

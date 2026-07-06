@@ -1,0 +1,51 @@
+{
+  "_comment": "Edit this file with your details before running scripts/build.sh",
+  "person": {
+    "name": "John Smith",
+    "title": "Chief Executive Officer",
+    "company": "Your Company Ltd",
+    "email": "john@example.com",
+    "phone": "+44 20 0000 0000",
+    "website": "www.example.com",
+    "address": "",
+    "slug": "john_smith"
+  },
+  "brand": {
+    "primary_color": "#1B1464",
+    "accent_color": "#F7931E",
+    "text_color": "#1B1464",
+    "muted_color": "#5A6478",
+    "font_family": "Arial, Helvetica, sans-serif",
+    "ring_color": "#F7931E",
+    "ring_color_secondary": "#1B1464",
+    "ring_width": 4,
+    "ring_pulse_frames": 24,
+    "ring_glow_spread": 8
+  },
+  "social": {
+    "linkedin": "linkedin.com/company/example",
+    "twitter": "",
+    "github": "",
+    "website": "https://www.example.com"
+  },
+  "assets": {
+    "profile_photo": "",
+    "logo_url": "",
+    "cdn_base_url": "https://res.cloudinary.com/dtwzc3b7w/image/upload/v1780590943/email-sig/"
+  },
+  "output": {
+    "avatar_size": 170,
+    "logo_height": 36,
+    "gif_fps": 12,
+    "max_gif_kb": 200,
+    "signature_width": 580,
+    "photo_width": 200,
+    "photo_height": 200
+  },
+  "photo_style": "para",
+  "copy_text": {
+    "cta_label": "Book a call",
+    "cta_url": "https://www.example.com/contact",
+    "tagline": "Your tagline here"
+  }
+}

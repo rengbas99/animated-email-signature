@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Signature Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+/* ── THEME CONSTANTS (v1: single fixed theme, hardcoded by design) ──
+   #1B1464 = navy (primary/text)   #F7931E = orange (accent)
+   This is the "default" theme asset pack — see src/assets/theme-default/.
+   Roadmap: swap these for a theme engine when multiple packs ship. */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #EEF0F7;
+  min-height: 100vh;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.page { max-width: 660px; margin: 0 auto; }
+
+/* Page header */
+.pg-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(27,20,100,0.1);
+}
+.pg-head svg { height: 32px; width: auto; }
+.pg-head-text h1 { font-size: 18px; font-weight: 600; color: #1B1464; }
+.pg-head-text p  { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+
+/* Panels */
+.panel {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(27,20,100,0.07), 0 0 0 1px rgba(27,20,100,0.05);
+}
+
+.sl {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #C8D0DC;
+  margin-bottom: 18px;
+}
+
+/* ── SIGNATURE CARD ──────────────────────── */
+.sig-card {
+  display: flex;
+  border: 1px solid #E9EBF2;
+  border-radius: 10px;
+  overflow: hidden;
+  max-width: 548px;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(27,20,100,0.09);
+}
+
+/* Sidebar */
+.sig-sidebar {
+  width: 50px;
+  flex-shrink: 0;
+  background: #FAFBFD;
+  border-right: 1px solid #ECEEF3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 22px 0;
+}
+
+.si {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #BFC8D6;
+  text-decoration: none;
+  transition: color 0.2s, background 0.18s;
+}
+.si:hover { color: #F7931E; background: rgba(247,147,30,0.1); }
+.si i { font-size: 16px; }
+.si-animated {
+  animation: aSiPulse 2.6s infinite ease-in-out;
+}
+#si-li.si-animated { animation-delay: 0s; }
+#si-web.si-animated { animation-delay: 0.4s; }
+#si-mail.si-animated { animation-delay: 0.8s; }
+
+/* Body */
+.sig-body { flex: 1; display: flex; min-width: 0; }
+
+.sig-info {
+  flex: 1;
+  padding: 20px 14px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.sig-logo {
+  margin-bottom: 13px;
+  opacity: 0;
+  animation: aFadeUp 0.55s ease both;
+}
+.sig-logo svg { height: 22px; width: auto; }
+
+.sig-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1B1464;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  opacity: 0;
+  animation: aFadeUp 0.55s 0.1s ease both;
+}
+
+.sig-role {
+  font-size: 11.5px;
+  color: #F7931E;
+  margin: 3px 0 13px;
+  opacity: 0;
+  animation: aFadeUp 0.55s 0.2s ease both;
+}
+
+.sig-details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  opacity: 0;
+  animation: aFadeUp 0.55s 0.31s ease both;
+}
+
+.dr {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: #5A6478;
+}
+.dr i { font-size: 12px; color: #F7931E; width: 13px; flex-shrink: 0; }
+.dr a { color: inherit; text-decoration: none; transition: color 0.15s; }
+.dr a:hover { color: #F7931E; }
+
+/* Photo column */
+.sig-photo {
+  width: 200px;
+  flex-shrink: 0;
+  position: relative;
+  background: #fff;
+  overflow: hidden;
+  min-height: 200px;
+}
+
+.strips-wrap { position: absolute; inset: 0; display: none; }
+.strips-wrap.active { display: block; }
+
+/* ── PARALLELOGRAM MODE ──────────────────── */
+.photo-main {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  clip-path: polygon(16% 0%, 100% 0%, 100% 100%, 0% 100%);
+  opacity: 0;
+  z-index: 0;
+  animation: aStrip 0.55s 0.52s cubic-bezier(.4,0,.2,1) both;
+}
+/* Navy blue accent — wide, behind orange */
+.photo-blue {
+  position: absolute;
+  inset: 0;
+  background: #1B1464;
+  clip-path: polygon(16% 0%, 32% 0%, 16% 100%, 0% 100%);
+  opacity: 0;
+  z-index: 1;
+  animation: aStrip 0.45s 0.38s cubic-bezier(.4,0,.2,1) both;
+}
+/* Orange accent — narrower, on top of blue */
+.photo-orange {
+  position: absolute;
+  inset: 0;
+  background: #F7931E;
+  clip-path: polygon(16% 0%, 24% 0%, 8% 100%, 0% 100%);
+  opacity: 0;
+  z-index: 2;
+  animation: aStrip 0.45s 0.28s cubic-bezier(.4,0,.2,1) both;
+}
+.shimmer-para {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(16% 0%, 100% 0%, 100% 100%, 0% 100%);
+  background: linear-gradient(108deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
+  transform: translateX(-200%);
+  animation: aShimmer 5s 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ── 4-STRIPS MODE ───────────────────────── */
+.strip {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  opacity: 1; /* strips visible immediately — drift animation is the loop, no intro */
+}
+/* 4 equal parallelogram strips — 18% wide, 4% gap, 24% skew offset
+   Seamless sine drift: odd strips → right, even strips → left.
+   Period = 5s matches capture window so GIF loop is invisible. */
+.strip-1 {
+  clip-path: polygon(5% 0%, 23% 0%, 48% 100%, 30% 100%);
+  animation: aStripDriftRight 5s 0s ease-in-out infinite;
+}
+.strip-2 {
+  clip-path: polygon(27% 0%, 45% 0%, 70% 100%, 52% 100%);
+  animation: aStripDriftLeft 5s 0.625s ease-in-out infinite;
+}
+.strip-3 {
+  clip-path: polygon(49% 0%, 67% 0%, 92% 100%, 74% 100%);
+  animation: aStripDriftRight 5s 1.25s ease-in-out infinite;
+}
+.strip-4 {
+  clip-path: polygon(71% 0%, 89% 0%, 114% 100%, 96% 100%);
+  animation: aStripDriftLeft 5s 1.875s ease-in-out infinite;
+}
+.shimmer-strips {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(108deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
+  transform: translateX(-200%);
+  animation: aShimmer 5s 2.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── CIRCLE MODE ─────────────────────────── */
+.circle-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -52%);
+  width: 114px;
+  height: 114px;
+}
+/* Shadow sits below the circle — gives 3D floating illusion */
+.circle-shadow {
+  position: absolute;
+  bottom: -13px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(1);
+  width: 86px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center,
+    rgba(27,20,100,0.55) 0%,
+    rgba(27,20,100,0.25) 40%,
+    transparent 72%
+  );
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  animation: aShadowIn 0.5s 0.8s ease forwards,
+             aShadowPulse 2.6s 1.4s ease-in-out infinite;
+}
+
+.circle-img {
+  width: 114px;
+  height: 114px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  border: 3px solid #F7931E;
+  position: relative;
+  z-index: 2;
+  opacity: 0;
+  box-shadow:
+    0 8px 28px rgba(27,20,100,0.32),
+    0 3px 10px rgba(27,20,100,0.18);
+  animation: aCircle 0.5s 0.5s ease both;
+}
+
+/* Rings render on TOP of the photo (z-index 4 > circle-img z-index 2) */
+.c-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid #F7931E;
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+}
+.c-ring-1 {
+  inset: -13px;   /* 13px outside the 114px frame = 140px ring */
+  animation: aRing 2.6s 1.3s ease-out infinite;
+}
+.c-ring-2 {
+  inset: -27px;   /* 27px outside = 168px ring */
+  animation: aRing 2.6s 1.9s ease-out infinite;
+}
+.circle-label {
+  position: absolute;
+  bottom: 10px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: #F7931E;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: aFadeUp 0.4s 1.1s ease both;
+}
+
+/* ── KEYFRAMES ───────────────────────────── */
+@keyframes aFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+@keyframes aStrip {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+/* Seamless strip drift — sine wave, starts and ends at 0px so GIF loop is invisible */
+@keyframes aStripDriftRight {
+  0%   { transform: translateX(0px);  }
+  50%  { transform: translateX(6px);  }
+  100% { transform: translateX(0px);  }
+}
+@keyframes aStripDriftLeft {
+  0%   { transform: translateX(0px);  }
+  50%  { transform: translateX(-6px); }
+  100% { transform: translateX(0px);  }
+}
+@keyframes aShimmer {
+  0%  { transform: translateX(-200%); }
+  28% { transform: translateX(200%);  }
+  100%{ transform: translateX(200%);  }
+}
+@keyframes aCircle {
+  from { opacity: 0; transform: scale(0.82); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+@keyframes aRing {
+  0%   { transform: scale(1);    opacity: 0.75; }
+  100% { transform: scale(1.55); opacity: 0;    }
+}
+@keyframes aShadowIn {
+  from { opacity: 0; transform: translateX(-50%) scaleX(0.45); }
+  to   { opacity: 1; transform: translateX(-50%) scaleX(1);    }
+}
+@keyframes aShadowPulse {
+  0%,100% { transform: translateX(-50%) scaleX(1);    opacity: 0.65; }
+  50%      { transform: translateX(-50%) scaleX(1.14); opacity: 0.38; }
+}
+@keyframes aSiPulse {
+  0%, 100% { transform: scale(0.92); color: #BFC8D6; }
+  50% { transform: scale(1.05); color: #F7931E; }
+}
+
+/* ── MODE SELECTOR ───────────────────────── */
+.mode-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.mode-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 6px;
+  border: 1.5px solid #E2E5ED;
+  border-radius: 9px;
+  cursor: pointer;
+  background: #FAFBFD;
+  transition: all 0.18s;
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #A8B2C1;
+}
+.mode-btn:hover { border-color: #F7931E; color: #F7931E; }
+.mode-btn.active {
+  border-color: #F7931E;
+  background: rgba(247,147,30,0.06);
+  color: #F7931E;
+}
+.mode-thumb {
+  width: 60px;
+  height: 36px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #1B1464;
+  position: relative;
+  flex-shrink: 0;
+}
+/* Thumb previews */
+.mt-para::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(30% 0%, 100% 0%, 70% 100%, 0% 100%);
+  background: linear-gradient(90deg, #F7931E 0%, #F7931E 40%, #b5976a 100%);
+}
+.mt-para::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(30% 0%, 38% 0%, 26% 100%, 18% 100%);
+  background: #F7931E;
+  z-index: 1;
+}
+.mt-strips::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(transparent, transparent) center/100% 100% no-repeat,
+    repeating-linear-gradient(
+      -20deg,
+      transparent 0px, transparent 8px,
+      #F7931E 8px, #F7931E 14px,
+      transparent 14px, transparent 22px
+    );
+}
+.mt-circle::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #F7931E;
+  box-shadow: 0 0 0 3px rgba(247,147,30,0.3), 0 0 0 6px rgba(247,147,30,0.15);
+}
+
+/* ── INSTRUCTIONS PANEL ──────────────────── */
+.inst-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.inst-tab {
+  padding: 7px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #E2E5ED;
+  border-radius: 20px;
+  background: transparent;
+  color: #9CA3AF;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.inst-tab:hover { border-color: #F7931E; color: #F7931E; }
+.inst-tab.active { background: #F7931E; border-color: #F7931E; color: #fff; }
+.inst-body { display: none; }
+.inst-body.active { display: block; }
+.inst-body ol {
+  list-style: none;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.inst-body ol li {
+  counter-increment: step;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #5A6478;
+  line-height: 1.5;
+}
+.inst-body ol li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(247,147,30,0.12);
+  color: #F7931E;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+.inst-body strong { color: #1B1464; font-weight: 600; }
+.inst-tip {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(27,20,100,0.04);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #6B7A99;
+  line-height: 1.5;
+}
+
+/* ── EDITOR ──────────────────────────────── */
+.upload-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1.5px dashed #DDE1EB;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #A8B2C1;
+  font-size: 13px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.upload-zone:hover { border-color: #F7931E; color: #F7931E; }
+.upload-zone i { font-size: 18px; flex-shrink: 0; }
+input[type=file] { display: none; }
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fg { display: flex; flex-direction: column; gap: 5px; }
+
+.fl {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #A8B2C1;
+}
+
+.fi {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 8px 11px;
+  border: 1px solid #E2E5ED;
+  border-radius: 7px;
+  color: #1B1464;
+  background: #FAFBFD;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.fi:focus {
+  border-color: #F7931E;
+  box-shadow: 0 0 0 3px rgba(247,147,30,0.1);
+  background: #fff;
+}
+
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn {
+  padding: 9px 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 7px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.18s;
+  line-height: 1;
+}
+
+.btn-ghost {
+  border-color: #E2E5ED;
+  background: transparent;
+  color: #6B7A99;
+}
+.btn-ghost:hover { background: #F5F7FB; border-color: #CDD2DF; }
+
+.btn-brand {
+  background: #F7931E;
+  border-color: #F7931E;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(247,147,30,0.3);
+}
+.btn-brand:hover {
+  background: #e8831a;
+  border-color: #e8831a;
+  box-shadow: 0 3px 10px rgba(247,147,30,0.4);
+  transform: translateY(-1px);
+}
+.btn-brand:active { transform: translateY(0); }
+
+/* ── GIF Studio ── */
+.gif-studio {
+  background: linear-gradient(135deg, #1B1464 0%, #2a206e 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(27,20,100,0.07), 0 0 0 1px rgba(27,20,100,0.05);
+}
+#gif-duration option, #gif-fps option { background: #1B1464; }
+
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Page header -->
+  <div class="pg-head">
+    <svg viewBox="0 0 118 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.46171 26.3219V32.4054C4.46171 33.3919 3.66204 34.1916 2.67553 34.1916H2.07765C0.926721 34.1916 0 33.2648 0 32.1139V10.1491C0 8.93093 0.98651 7.93695 2.21217 7.93695H3.19121C3.89372 7.93695 4.46171 8.50494 4.46171 9.20746C5.58275 8.13126 6.95041 7.58569 8.58712 7.58569C14.6781 7.58569 17.7273 10.8965 17.7273 17.5181C17.7273 20.6046 16.8828 22.9812 15.2012 24.6478C13.5197 26.3144 11.2178 27.1515 8.30312 27.1515C6.89062 27.144 5.61264 26.8675 4.46171 26.3219ZM4.46171 12.2567V22.3011C5.26886 22.9588 6.218 23.2802 7.30167 23.2802C9.35689 23.2802 10.8367 22.7869 11.7335 21.8079C12.6303 20.8288 13.0787 19.2743 13.0787 17.1593C13.0787 14.9023 12.6303 13.3104 11.741 12.3837C10.8516 11.4645 9.37184 11.0011 7.31661 11.0011C6.24789 11.0086 5.29128 11.4271 4.46171 12.2567Z" fill="#F7931E"/>
+      <path d="M30.2903 24.6102C29.8868 25.2754 29.1843 25.8209 28.1753 26.2395C27.1664 26.658 26.1201 26.8747 25.029 26.8747C22.9737 26.8747 21.352 26.359 20.1786 25.3277C18.9978 24.2963 18.4149 22.839 18.4149 20.9482C18.4149 18.736 19.2444 17.0021 20.9036 15.7541C22.5627 14.506 24.9243 13.8782 27.981 13.8782C28.5042 13.8782 29.1245 13.9679 29.8345 14.1472C29.8345 11.8977 28.4145 10.7767 25.5671 10.7767C24.6104 10.7767 23.736 10.8664 22.9588 11.0532C22.0321 11.2699 21.1053 10.7244 20.8512 9.80511C20.5747 8.81112 21.1577 7.7723 22.1591 7.50325C23.2801 7.19683 24.5133 7.04736 25.8735 7.04736C28.7882 7.04736 30.9256 7.71251 32.2783 9.03533C33.631 10.3656 34.3111 12.8767 34.3111 16.5761V20.6642C34.3111 23.2127 34.8193 24.812 35.8432 25.4622C35.477 26.1049 35.0659 26.501 34.6101 26.6505C34.1542 26.8 33.6385 26.8747 33.0556 26.8747C32.4128 26.8747 31.8374 26.6356 31.3217 26.1572C30.8135 25.6864 30.4697 25.1633 30.2903 24.6102ZM29.8569 17.5253C29.0946 17.3683 28.5266 17.2936 28.1454 17.2936C24.6254 17.2936 22.8616 18.4445 22.8616 20.7539C22.8616 22.4653 23.8556 23.3248 25.8436 23.3248C28.5191 23.3248 29.8569 21.987 29.8569 19.3115V17.5253Z" fill="#F7931E"/>
+      <path d="M43.6904 29.7672C43.2121 31.0377 42.1957 32.099 40.6337 32.936C39.6173 33.4816 38.4963 33.8478 37.2631 34.0421C36.1645 34.214 35.1631 33.362 35.1631 32.2484C35.1631 31.1797 35.9627 30.2829 37.0165 30.1484C39.2212 29.8718 40.3198 29.0423 40.3198 27.6671C40.3198 26.5237 39.8415 24.7749 38.8924 22.4207L33.758 9.68576C33.3545 8.68431 34.0943 7.58569 35.1705 7.58569H35.9702C36.9119 7.58569 37.7564 8.16116 38.1002 9.03556L42.7487 20.7915L46.9115 9.06546C47.2254 8.1761 48.0699 7.58569 49.0116 7.58569H50.3419C51.1714 7.58569 51.7469 8.41526 51.4554 9.19251L43.6904 29.7672Z" fill="#F7931E"/>
+      <path d="M53.7349 11.1729C52.7783 11.1729 52.0085 10.3957 52.0085 9.44655V9.4316C52.0085 8.4152 52.8306 7.58564 53.8544 7.58564H54.2207V5.32862C54.2207 4.34959 54.8335 3.46771 55.7527 3.1314L56.8738 2.72035C57.7482 2.39899 58.6824 3.04919 58.6824 3.98338V7.59311H62.0903C63.1067 7.59311 63.9288 8.4152 63.9288 9.4316C63.9288 10.3957 63.1441 11.1804 62.18 11.1804H59.9305C59.2429 11.1804 58.6824 11.7409 58.6824 12.4285V19.5508C58.6824 20.9185 58.8991 21.8826 59.3251 22.4505C59.7511 23.0185 60.5059 23.2951 61.5746 23.2951C62.0529 23.2951 62.5088 23.2353 62.9572 23.1232C63.7719 22.9139 64.5715 23.5118 64.5715 24.3563V24.9318C64.5715 25.9407 63.8242 26.7852 62.8227 26.9123C62.0529 27.0094 61.1636 27.0617 60.1397 27.0617C58.234 27.0617 56.7766 26.5236 55.7527 25.4474C54.7289 24.3712 54.2207 22.8392 54.2207 20.8512V11.6587C54.2207 11.3897 54.0039 11.1729 53.7349 11.1729Z" fill="#1B1464"/>
+      <path d="M77.7699 9.87237C77.3513 10.7094 76.4097 11.1578 75.5054 10.9261C75.1242 10.829 74.7206 10.7767 74.3096 10.7767C73.2783 10.7767 72.359 11.2475 71.5519 12.1892C70.7522 13.1308 70.3486 14.2743 70.3486 15.6345V25.0063C70.3486 25.8434 69.6685 26.5235 68.8315 26.5235H67.6133C66.6567 26.5235 65.8869 25.7462 65.8869 24.7971V9.25954C65.8869 8.23566 66.7165 7.40609 67.7403 7.40609H68.6596C69.5938 7.40609 70.3486 8.16092 70.3486 9.09512V9.15491C71.5967 7.74988 73.2558 7.04736 75.326 7.04736C75.9837 7.04736 76.5741 7.0922 77.1047 7.17441C78.024 7.32388 78.5322 8.32534 78.1211 9.16238L77.7699 9.87237Z" fill="#1B1464"/>
+      <path d="M81.4543 24.6702V11.8904C81.4543 11.4345 81.0806 11.0609 80.6247 11.0609C79.7279 11.0609 79.0104 10.3359 79.0104 9.44658V8.95332C79.0104 8.10134 79.7055 7.4063 80.5575 7.4063H84.369C85.2509 7.4063 85.9683 8.12376 85.9683 9.00564V24.9467C85.9683 25.8137 85.2658 26.5237 84.3914 26.5237H83.2928C82.2764 26.5162 81.4543 25.6941 81.4543 24.6702ZM83.7561 0C84.4736 0 85.079 0.254101 85.5872 0.754829C86.0954 1.26303 86.342 1.86839 86.342 2.58585C86.342 3.30331 86.0879 3.90867 85.5872 4.41687C85.079 4.92507 84.4736 5.1717 83.7561 5.1717C83.0387 5.1717 82.4333 4.9176 81.9251 4.41687C81.4169 3.90867 81.1703 3.30331 81.1703 2.58585C81.1703 1.86839 81.4244 1.26303 81.9251 0.754829C82.4333 0.254101 83.0462 0 83.7561 0Z" fill="#1B1464"/>
+      <path d="M87.4556 16.7407C87.4556 13.826 88.3001 11.4495 89.9816 9.61843C91.6632 7.78741 93.8903 6.86816 96.648 6.86816C99.5478 6.86816 101.805 7.75004 103.412 9.50633C105.018 11.2701 105.818 13.6766 105.818 16.7333C105.818 19.7825 105.003 22.1964 103.367 23.9976C101.73 25.7912 99.488 26.6955 96.648 26.6955C93.7483 26.6955 91.4913 25.7912 89.877 23.9751C88.2627 22.1591 87.4556 19.7451 87.4556 16.7407ZM92.0967 16.7407C92.0967 20.9483 93.6138 23.0559 96.648 23.0559C98.0381 23.0559 99.1442 22.5103 99.9588 21.4117C100.773 20.3206 101.184 18.7586 101.184 16.7333C101.184 12.578 99.6748 10.5078 96.6555 10.5078C95.2654 10.5078 94.1594 11.0534 93.3373 12.152C92.5077 13.2431 92.0967 14.7752 92.0967 16.7407Z" fill="#1B1464"/>
+      <path d="M107.066 11.1729C106.169 11.1729 105.437 10.448 105.437 9.54371V9.02803C105.437 8.22836 106.08 7.58564 106.879 7.58564H107.649V5.09694C107.649 4.25243 108.172 3.4976 108.972 3.20613L110.302 2.72035C111.184 2.39899 112.118 3.04919 112.118 3.98338V7.57816H115.668C116.602 7.57816 117.357 8.33299 117.357 9.26719V9.73055C117.357 10.5227 116.715 11.158 115.93 11.158H113.307C112.649 11.158 112.111 11.6961 112.111 12.3538V19.5284C112.111 20.896 112.328 21.8601 112.754 22.4281C113.18 22.9961 113.934 23.2726 115.003 23.2726C115.616 23.2726 116.206 23.1755 116.774 22.9812C117.372 22.7794 118 23.2203 118 23.8556V25.2382C118 26.0229 117.439 26.6955 116.662 26.8226C115.803 26.9646 114.779 27.0318 113.576 27.0318C111.67 27.0318 110.213 26.4937 109.189 25.4175C108.165 24.3414 107.657 22.8093 107.657 20.8213V11.7559C107.657 11.4345 107.395 11.1729 107.066 11.1729Z" fill="#1B1464"/>
+      <path d="M61.8661 36.5604V38.7651C61.8661 38.922 61.7391 39.0491 61.5821 39.0491H61.1337C60.7227 39.0491 60.3864 38.7128 60.3864 38.3017V31.0225C60.3864 30.589 60.7376 30.2377 61.1711 30.2377H61.6643C61.769 30.2377 61.8586 30.3274 61.8586 30.4321V30.447C61.8586 30.5292 61.9483 30.5741 62.0156 30.5217C62.3594 30.2527 62.7629 30.1182 63.2263 30.1182C65.2442 30.1182 66.2531 31.2317 66.2531 33.4514C66.2531 34.4902 65.9766 35.2824 65.4161 35.8429C64.8555 36.4034 64.0932 36.6799 63.1291 36.6799C62.7181 36.6799 62.337 36.6052 61.9932 36.4632C61.9334 36.4408 61.8661 36.4931 61.8661 36.5604ZM61.8661 31.8296V35.0657C61.8661 35.0956 61.8811 35.1254 61.9035 35.1404C62.1651 35.3347 62.464 35.4393 62.8078 35.4393C63.4879 35.4393 63.9811 35.2749 64.2801 34.9536C64.579 34.6322 64.7285 34.1165 64.7285 33.414C64.7285 32.6666 64.579 32.136 64.2876 31.8296C63.9886 31.5232 63.5028 31.3737 62.8227 31.3737C62.4789 31.3737 62.1725 31.5008 61.9035 31.7549C61.8736 31.7773 61.8661 31.7997 61.8661 31.8296Z" fill="#F7931E"/>
+      <path d="M70.9091 36.0298C70.8792 35.97 70.797 35.9625 70.7522 36.0148C70.6102 36.1792 70.4084 36.3138 70.1468 36.4259C69.8105 36.5679 69.4667 36.6351 69.1005 36.6351C68.4204 36.6351 67.8823 36.4632 67.4937 36.1269C67.1051 35.7906 66.9108 35.3048 66.9108 34.677C66.9108 33.9446 67.1873 33.3692 67.7329 32.9581C68.2784 32.5471 69.0632 32.3378 70.0796 32.3378C70.2216 32.3378 70.386 32.3602 70.5728 32.3976C70.6401 32.4126 70.6999 32.3602 70.6924 32.293C70.6401 31.6353 70.1692 31.3065 69.2874 31.3065C68.824 31.3065 68.4204 31.3737 68.0841 31.5008C67.9795 31.5382 67.8674 31.4858 67.8375 31.3812L67.7254 30.9926C67.6357 30.6637 67.8225 30.32 68.1514 30.2303C68.5251 30.1257 68.9361 30.0808 69.3845 30.0808C70.3486 30.0808 71.0586 30.2975 71.507 30.7385C71.9554 31.1794 72.1796 32.009 72.1796 33.2347V34.5874C72.1796 35.3721 72.3291 35.8878 72.6206 36.1269C72.6579 36.1568 72.6654 36.2166 72.643 36.254C72.5309 36.4184 72.4113 36.523 72.2843 36.5679C72.1348 36.6202 71.9629 36.6426 71.7686 36.6426C71.5593 36.6426 71.365 36.5604 71.1931 36.4034C71.0661 36.2764 70.9689 36.1568 70.9091 36.0298ZM70.6999 33.6083C70.6999 33.5635 70.67 33.5261 70.6251 33.5112C70.4084 33.4738 70.2514 33.4514 70.1319 33.4514C68.966 33.4514 68.3831 33.8325 68.3831 34.5948C68.3831 35.2226 68.7792 35.4991 69.5788 35.4394C70.2141 35.387 70.6999 34.8489 70.6999 34.2062V33.6083Z" fill="#F7931E"/>
+      <path d="M76.0733 37.5395C75.9164 37.958 75.5801 38.3093 75.0569 38.5858C74.6533 38.8026 74.2049 38.9296 73.6967 38.9819C73.4501 39.0043 73.2408 38.8175 73.2408 38.5709V38.2495C73.2408 37.9506 73.4725 37.6965 73.7715 37.6666C74.5562 37.5844 74.9523 37.3078 74.9523 36.837C74.9523 36.4559 74.7953 35.8804 74.4815 35.0957L72.6729 30.6041C72.5907 30.4023 72.7401 30.1855 72.9569 30.1855H73.5547C73.8387 30.1855 74.1003 30.3574 74.2049 30.6265L75.6623 34.3184C75.6922 34.4006 75.7221 34.4006 75.6922 34.3184L77.1645 30.6041C77.2541 30.35 77.4933 30.1855 77.7624 30.1855H77.9043C78.3602 30.1855 78.6816 30.6414 78.5172 31.0749L76.0733 37.5395Z" fill="#F7931E"/>
+      <path d="M86.7979 36.5677C86.6335 36.5677 86.5064 36.4332 86.5064 36.2763V32.5993C86.5064 31.7697 86.1327 31.3512 85.3854 31.3512C85.1612 31.3512 84.9519 31.4185 84.7501 31.5455C84.6007 31.6427 84.4886 31.7473 84.3989 31.8594C84.3466 31.9341 84.3167 32.0238 84.3167 32.1135V36.209C84.3167 36.4033 84.1597 36.5677 83.9579 36.5677H83.1583C82.9789 36.5677 82.8369 36.4258 82.8369 36.2464V32.3751C82.8369 32.0612 82.7398 31.8146 82.5454 31.6352C82.3511 31.4484 82.0821 31.3587 81.7308 31.3587C81.544 31.3587 81.3422 31.4259 81.1255 31.5679C80.976 31.6651 80.8489 31.7697 80.7593 31.8744C80.692 31.9566 80.6546 32.0537 80.6546 32.1658V36.2464C80.6546 36.4258 80.5052 36.5752 80.3258 36.5752H79.4738C79.3094 36.5752 79.1749 36.4407 79.1749 36.2763V30.6861C79.1749 30.4394 79.3767 30.2376 79.6233 30.2376H79.9297C80.0941 30.2376 80.2436 30.3273 80.3183 30.4693C80.4005 30.6263 80.6023 30.6711 80.7368 30.559C81.103 30.2675 81.5515 30.1181 82.0821 30.1181C82.8743 30.1181 83.4871 30.3199 83.9131 30.7309C83.9505 30.7683 84.0103 30.7683 84.0476 30.7309C84.227 30.5515 84.4661 30.4095 84.7576 30.2974C85.0864 30.1704 85.4228 30.1106 85.7516 30.1106C86.4541 30.1106 87.0072 30.3124 87.3958 30.716C87.7844 31.1195 87.9862 31.6726 87.9862 32.3826V36.1866C87.9862 36.3884 87.8218 36.5603 87.6125 36.5603H86.7979V36.5677Z" fill="#F7931E"/>
+      <path d="M94.3089 33.7951H90.1536C90.1012 33.7951 90.0489 33.84 90.0564 33.8998C90.1012 34.3556 90.2731 34.7144 90.5721 34.9759C90.8934 35.2525 91.3194 35.3945 91.8575 35.3945C92.3956 35.3945 92.8366 35.2824 93.1654 35.0582C93.2924 34.9685 93.4718 35.0208 93.5391 35.1553L93.8231 35.7158C93.9128 35.8877 93.8455 36.097 93.6811 36.1941C93.1803 36.4856 92.4928 36.6276 91.6408 36.6276C90.6767 36.6276 89.9144 36.3436 89.3464 35.7756C88.7859 35.2076 88.5019 34.4229 88.5019 33.4065C88.5019 32.4125 88.8083 31.5979 89.4286 30.9851C90.0489 30.3648 90.7888 30.0583 91.6483 30.0583C92.5675 30.0583 93.2999 30.3349 93.8604 30.8804C94.4135 31.426 94.6975 32.1285 94.6975 32.973C94.6975 33.1076 94.6751 33.2944 94.6302 33.5261C94.6003 33.683 94.4658 33.7951 94.3089 33.7951ZM90.2283 32.689H93.1056C93.1654 32.689 93.2102 32.6367 93.2028 32.5769C93.0757 31.725 92.5675 31.299 91.6782 31.299C90.871 31.299 90.3553 31.725 90.1386 32.5695C90.1162 32.6218 90.161 32.689 90.2283 32.689Z" fill="#F7931E"/>
+      <path d="M99.4058 36.68C99.2489 36.68 99.1218 36.5529 99.1218 36.396V33.018C99.1218 32.4799 99.0172 32.0838 98.8079 31.8371C98.5987 31.5905 98.2624 31.4635 97.7915 31.4635C97.5748 31.4635 97.3431 31.5232 97.0965 31.6503C96.8648 31.7699 96.678 31.9119 96.5435 32.0763C96.5285 32.0912 96.521 32.1137 96.521 32.1361V36.3213C96.521 36.5156 96.3641 36.68 96.1623 36.68H95.3402C95.1758 36.68 95.0413 36.5455 95.0413 36.3811V30.6787C95.0413 30.4994 95.1907 30.3499 95.3701 30.3499H95.8858C96.0203 30.3499 96.1399 30.4246 96.1997 30.5517L96.3192 30.8133C96.3491 30.873 96.4239 30.888 96.4762 30.8432C96.8723 30.4396 97.4328 30.2378 98.1577 30.2378C98.9126 30.2378 99.503 30.462 99.9364 30.9179C100.37 31.3663 100.587 32.0016 100.587 32.8087V36.3811C100.587 36.5529 100.452 36.6875 100.28 36.6875H99.4058V36.68Z" fill="#F7931E"/>
+      <path d="M101.618 31.5008H101.274C101.11 31.5008 100.975 31.3662 100.975 31.2018V30.6488C100.975 30.4619 101.125 30.3125 101.312 30.3125H101.61C101.663 30.3125 101.708 30.2676 101.708 30.2153V29.2737C101.708 29.1242 101.797 28.9897 101.939 28.9373L102.799 28.6235C102.986 28.5562 103.18 28.6907 103.18 28.8925V30.2228C103.18 30.2751 103.225 30.32 103.277 30.32H104.615C104.779 30.32 104.921 30.4545 104.921 30.6264V31.157C104.921 31.3513 104.764 31.5082 104.57 31.5082H103.285C103.232 31.5082 103.187 31.5531 103.187 31.6054V34.2809C103.187 34.7368 103.255 35.0507 103.397 35.245C103.583 35.4917 103.957 35.5739 104.518 35.4991C104.69 35.4767 104.921 35.3571 104.921 35.3571V36.3287C104.921 36.4931 104.801 36.6426 104.644 36.6725C104.331 36.7397 103.934 36.7771 103.456 36.7771C102.828 36.7771 102.343 36.5977 101.999 36.239C101.663 35.8803 101.491 35.3721 101.491 34.7144V31.6054C101.498 31.5456 101.453 31.5008 101.618 31.5008Z" fill="#F7931E"/>
+      <path d="M105.826 35.8804L106.087 35.2974C106.154 35.1405 106.349 35.0882 106.491 35.1779C106.864 35.4021 107.275 35.5142 107.716 35.5142C108.292 35.5142 108.576 35.3124 108.576 34.9013C108.576 34.6622 108.486 34.4604 108.314 34.3109C108.142 34.154 107.806 33.9746 107.305 33.7654C106.214 33.3095 105.669 32.6742 105.669 31.8596C105.669 31.314 105.878 30.888 106.296 30.5816C106.715 30.2752 107.246 30.1257 107.896 30.1257C108.449 30.1257 108.979 30.2304 109.48 30.4396C109.637 30.5069 109.712 30.6788 109.652 30.8357L109.465 31.3439C109.398 31.5233 109.196 31.598 109.024 31.5083C108.74 31.3663 108.396 31.2916 107.978 31.2916C107.462 31.2916 107.201 31.4934 107.201 31.9044C107.201 32.0689 107.283 32.2109 107.455 32.3454C107.627 32.4724 107.985 32.6518 108.546 32.8685C109.099 33.0853 109.503 33.3543 109.749 33.6607C109.996 33.9746 110.115 34.3483 110.115 34.7892C110.115 35.3796 109.899 35.8355 109.465 36.1718C109.032 36.5082 108.434 36.68 107.687 36.68C107.268 36.68 106.924 36.6427 106.67 36.5754C106.476 36.5231 106.244 36.4334 105.975 36.2989C105.826 36.2316 105.758 36.0373 105.826 35.8804Z" fill="#F7931E"/>
+    </svg>
+    <div class="pg-head-text">
+      <h1>Email Signature Builder</h1>
+      <p>Personalise and copy your animated signature</p>
+    </div>
+  </div>
+
+  <!-- Preview panel -->
+  <div class="panel">
+    <p class="sl">Live Preview</p>
+
+    <div class="sig-card" id="sig-card">
+
+      <!-- Sidebar social icons -->
+      <div class="sig-sidebar">
+        <a class="si si-animated" id="si-li" href="#" target="_blank" title="LinkedIn">
+          <i class="ti ti-brand-linkedin"></i>
+        </a>
+        <a class="si si-animated" id="si-web" href="#" target="_blank" title="Website">
+          <i class="ti ti-world"></i>
+        </a>
+        <a class="si si-animated" id="si-mail" href="#" title="Email">
+          <i class="ti ti-mail"></i>
+        </a>
+      </div>
+
+      <!-- Main body -->
+      <div class="sig-body">
+
+        <!-- Info column -->
+        <div class="sig-info">
+
+          <!-- Logo -->
+          <div class="sig-logo" style="margin-bottom: 13px; opacity: 0; animation: aFadeUp 0.55s ease both;">
+            <img id="pv-logo" src="" height="30" alt="Company logo" style="height: 30px; width: auto; display: block; border: 0;">
+          </div>
+
+          <div class="sig-name" id="pv-name">John Smith</div>
+          <div class="sig-role" id="pv-role">Chief Executive Officer</div>
+
+          <div class="sig-details">
+            <div class="dr">
+              <i class="ti ti-building"></i>
+              <span id="pv-co">Your Company Ltd</span>
+            </div>
+            <div class="dr">
+              <i class="ti ti-mail"></i>
+              <a id="pv-ea" href="mailto:you@example.com">
+                <span id="pv-email">you@example.com</span>
+              </a>
+            </div>
+            <div class="dr">
+              <i class="ti ti-map-pin"></i>
+              <span id="pv-addr"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Photo column — 3 selectable modes -->
+        <div class="sig-photo">
+
+          <!-- Mode: Parallelogram (default) -->
+          <div class="strips-wrap active" id="wrap-para">
+            <div class="photo-main"   id="pm-main"></div>
+            <div class="photo-blue"   id="pm-blue"></div>
+            <div class="photo-orange" id="pm-orange"></div>
+            <div class="shimmer-para"></div>
+          </div>
+
+          <!-- Mode: 4 Strips -->
+          <div class="strips-wrap" id="wrap-strips">
+            <div class="strip strip-1" id="ps1"></div>
+            <div class="strip strip-2" id="ps2"></div>
+            <div class="strip strip-3" id="ps3"></div>
+            <div class="strip strip-4" id="ps4"></div>
+            <div class="shimmer-strips"></div>
+          </div>
+
+          <!-- Mode: Circle -->
+          <div class="strips-wrap" id="wrap-circle">
+            <div class="circle-frame">
+              <div class="circle-shadow"></div>    <!-- z-index 1: cast shadow below -->
+              <div class="circle-img" id="pm-circle"></div> <!-- z-index 2: photo -->
+              <div class="c-ring c-ring-1"></div>  <!-- z-index 4: ring over photo -->
+              <div class="c-ring c-ring-2"></div>  <!-- z-index 4: ring over photo -->
+            </div>
+            <div class="circle-label" id="circle-label">Your Company</div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Editor panel -->
+  <div class="panel">
+    <p class="sl">Customise</p>
+
+    <!-- Photo style selector -->
+    <div class="mode-row">
+      <button class="mode-btn active" data-mode="para" onclick="setMode(this)">
+        <div class="mode-thumb mt-para"></div>
+        Parallelogram
+      </button>
+      <button class="mode-btn" data-mode="strips" onclick="setMode(this)">
+        <div class="mode-thumb mt-strips"></div>
+        3 Strips
+      </button>
+      <button class="mode-btn" data-mode="circle" onclick="setMode(this)">
+        <div class="mode-thumb mt-circle"></div>
+        Circle
+      </button>
+    </div>
+
+    <div class="upload-zone" onclick="document.getElementById('pf').click()">
+      <i class="ti ti-photo-up"></i>
+      <span id="ul-lbl">Upload profile photo (Base64 fallback)</span>
+    </div>
+    <input type="file" id="pf" accept="image/*" onchange="onPhoto(this)">
+
+    <div class="field-grid">
+      <div class="fg">
+        <span class="fl">Full Name</span>
+        <input class="fi" id="fn" type="text" value="John Smith" oninput="sync()">
+      </div>
+      <div class="fg">
+        <span class="fl">Job Title</span>
+        <input class="fi" id="fr" type="text" value="Chief Executive Officer" oninput="sync()">
+      </div>
+      <div class="fg">
+        <span class="fl">Company</span>
+        <input class="fi" id="fc" type="text" value="Your Company Ltd" oninput="sync()">
+      </div>
+      <div class="fg">
+        <span class="fl">Email</span>
+        <input class="fi" id="fe" type="email" value="you@example.com" oninput="sync()">
+      </div>
+      <div class="fg">
+        <span class="fl">Website</span>
+        <input class="fi" id="fw" type="text" value="www.example.com" oninput="sync()">
+      </div>
+      <div class="fg">
+        <span class="fl">LinkedIn URL</span>
+        <input class="fi" id="fli" type="text" value="linkedin.com/company/example" oninput="sync()">
+      </div>
+      <div class="fg" style="grid-column: 1 / -1;">
+        <span class="fl">Office Address</span>
+        <input class="fi" id="faddr" type="text" value="" oninput="sync()">
+      </div>
+      <!-- Address -->
+    </div>
+
+    <div class="btn-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
+      <button class="btn btn-brand" id="copy-rt-btn" onclick="copyRichText()" style="flex: 1; min-width: 180px;">Copy for Gmail (Rich Text)</button>
+      <button class="btn btn-ghost" id="copy-code-btn" onclick="copyHTMLCode()" style="font-size: 12.5px;">Copy Raw HTML</button>
+      <button class="btn btn-ghost" onclick="replay()" style="font-size: 12.5px;">↺ Replay Preview</button>
+    </div>
+  </div>
+
+  <!-- Instructions panel -->
+  <div class="panel">
+    <p class="sl">How to add your signature</p>
+
+    <div class="inst-tabs">
+      <button class="inst-tab active" onclick="showTab(this,'gmail')">Gmail</button>
+      <button class="inst-tab" onclick="showTab(this,'outlook')">Outlook</button>
+      <button class="inst-tab" onclick="showTab(this,'apple')">Apple Mail</button>
+    </div>
+
+    <div class="inst-body active" id="inst-gmail">
+      <p style="font-size:12.5px;color:#5A6478;margin-bottom:14px;line-height:1.6;">Gmail's built-in signature editor <strong style="color:#1B1464;">strips raw HTML</strong> — animations and advanced formatting won't survive a direct paste. Use one of the methods below instead.</p>
+
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#F7931E;margin-bottom:10px;">Recommended — WiseStamp Extension</p>
+      <ol>
+        <li>Install <strong>WiseStamp</strong> from the Chrome Web Store (free tier available)</li>
+        <li>Open WiseStamp → click <strong>Create New Signature</strong></li>
+        <li>Switch to the <strong>HTML editor</strong> tab inside WiseStamp</li>
+        <li>Click <strong>Copy Signature HTML</strong> above and paste it in</li>
+        <li>Save — WiseStamp automatically injects it into Gmail on every compose</li>
+      </ol>
+
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#C8D0DC;margin:14px 0 10px;">Alternative — Basic paste (formatting only, no animation)</p>
+      <ol>
+        <li>Open Gmail → <strong>Settings ⚙</strong> → <strong>See all settings</strong></li>
+        <li>Scroll to <strong>Signature</strong> → click <strong>Create new</strong></li>
+        <li>Click <strong>Copy Signature HTML</strong> above, then paste directly into the signature box — Gmail will preserve basic formatting but strip CSS animations</li>
+        <li>Scroll down and click <strong>Save Changes</strong></li>
+      </ol>
+
+      <p class="inst-tip">💡 Other options that support animated/HTML signatures: <strong>SignaIA</strong>, <strong>Signaware</strong> (GIF-based), and <strong>Signature Studio</strong>. All inject signatures via a Chrome extension.</p>
+    </div>
+
+    <div class="inst-body" id="inst-outlook">
+      <ol>
+        <li>Click <strong>Copy Signature HTML</strong> button above</li>
+        <li>Open Outlook → <strong>File</strong> → <strong>Options</strong> → <strong>Mail</strong> → <strong>Signatures…</strong></li>
+        <li>Click <strong>New</strong>, name your signature, then click <strong>OK</strong></li>
+        <li>In the signature editor click the <strong>Source / HTML</strong> view button</li>
+        <li>Paste the copied HTML and switch back to normal view</li>
+        <li>Set it as default for <strong>New messages</strong> and click <strong>OK</strong></li>
+      </ol>
+      <p class="inst-tip">💡 Tip: On Outlook for Mac, go to Preferences → Signatures to find the same option.</p>
+    </div>
+
+    <div class="inst-body" id="inst-apple">
+      <ol>
+        <li>Click <strong>Copy Signature HTML</strong> button above</li>
+        <li>Open <strong>Mail</strong> app → <strong>Mail</strong> menu → <strong>Settings</strong> → <strong>Signatures</strong> tab</li>
+        <li>Click <strong>+</strong> to add a new signature and name it</li>
+        <li>Uncheck <strong>"Always match my default message font"</strong></li>
+        <li>Open <strong>TextEdit</strong>, paste the HTML, save as <strong>.html</strong> file</li>
+        <li>Drag the saved <strong>.html file</strong> into the Apple Mail signature text area</li>
+      </ol>
+      <p class="inst-tip">💡 Apple Mail doesn't have a direct HTML paste option — dragging the saved file is the most reliable method.</p>
+    </div>
+  </div>
+
+
+  <!-- ── GIF STUDIO ─────────────────────────── -->
+  <div class="gif-studio">
+    <p class="sl" style="font-size:10.5px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:18px;">GIF Studio</p>
+    <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:6px;">Export Animation as GIF</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;line-height:1.5;">
+      Captures your animated signature as a looping GIF — works in Gmail, Outlook, Apple Mail.
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px;">Duration</div>
+        <select id="gif-duration" style="width:100%;padding:8px 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:#fff;font-family:Inter,sans-serif;font-size:12px;outline:none;">
+          <option value="2000">2s — intro only</option>
+          <option value="3500" selected>3.5s — intro + settle</option>
+          <option value="5500">5.5s — intro + shimmer</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px;">Frame Rate</div>
+        <select id="gif-fps" style="width:100%;padding:8px 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:#fff;font-family:Inter,sans-serif;font-size:12px;outline:none;">
+          <option value="8">8 fps — small file</option>
+          <option value="12" selected>12 fps — balanced</option>
+          <option value="18">18 fps — smooth</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Canvas preview (hidden until capture) -->
+    <canvas id="preview-canvas" width="548" height="170"
+      style="width:100%;border-radius:8px;display:none;margin-bottom:12px;background:#fff;"></canvas>
+
+    <button id="capture-btn" onclick="captureGIF()"
+      style="width:100%;padding:12px;background:#F7931E;border:none;border-radius:9px;color:#fff;font-family:Inter,sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+      &#128247; Capture &amp; Generate GIF
+    </button>
+
+    <div id="gif-progress-wrap" style="display:none;margin-top:14px;">
+      <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;margin-bottom:8px;">
+        <div id="gif-progress-bar" style="height:100%;background:linear-gradient(90deg,#F7931E,#ffb347);border-radius:2px;width:0%;transition:width 0.2s;"></div>
+      </div>
+      <div id="gif-progress-text" style="font-size:11px;color:rgba(255,255,255,0.45);text-align:center;">Initialising…</div>
+    </div>
+
+    <div id="gif-result" style="display:none;margin-top:16px;">
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:16px;">
+        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">✓ GIF Ready</div>
+        <img id="gif-preview" style="width:100%;border-radius:6px;display:block;margin-bottom:12px;" src="" alt="">
+        <a id="gif-download" href="#" download="signature.gif"
+          style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;background:rgba(247,147,30,0.2);border:1px solid rgba(247,147,30,0.4);border-radius:7px;color:#F7931E;font-family:Inter,sans-serif;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:8px;">
+          &#11015; Download GIF
+        </a>
+        <div id="gif-size-note" style="font-size:10.5px;color:rgba(255,255,255,0.25);text-align:center;"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding:12px 14px;background:rgba(255,255,255,0.04);border-left:2px solid #F7931E;border-radius:0 7px 7px 0;">
+      <p style="font-size:11.5px;color:rgba(255,255,255,0.5);line-height:1.6;">
+        <strong style="color:#F7931E;">After download:</strong> Upload to ImgBB.com (free) → copy direct link → 
+        Gmail Settings → Signature → Insert Image by URL. The GIF loops automatically in all major email clients.
+      </p>
+    </div>
+  </div>
+
+</div><!-- /.page -->
+
+<script>
+const $ = id => document.getElementById(id);
+const fmtUrl = u => (!u ? '#' : u.startsWith('http') ? u : 'https://' + u);
+
+let photoIsPersonal = false;
+
+/* ── Professional mock placeholder SVG ── */
+const mockSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 320">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1650"/>
+      <stop offset="100%" stop-color="#26206e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="60%" cy="30%" r="55%">
+      <stop offset="0%" stop-color="#F7931E" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#F7931E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="400" height="320" fill="url(#bg)"/>
+  <rect width="400" height="320" fill="url(#glow)"/>
+  <!-- subtle grid -->
+  <line x1="0" y1="80" x2="400" y2="80" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+  <line x1="0" y1="160" x2="400" y2="160" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+  <line x1="0" y1="240" x2="400" y2="240" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+  <!-- shoulder/body shape -->
+  <path d="M 50 320 Q 60 230 130 215 Q 165 208 200 208 Q 235 208 270 215 Q 340 230 350 320 Z" fill="#F7931E" opacity="0.1"/>
+  <path d="M 75 320 Q 85 242 140 226 Q 168 218 200 218 Q 232 218 260 226 Q 315 242 325 320 Z" fill="#F7931E" opacity="0.08"/>
+  <!-- shirt collar -->
+  <path d="M 178 210 L 200 240 L 222 210 L 210 215 L 200 228 L 190 215 Z" fill="rgba(255,255,255,0.12)"/>
+  <!-- neck -->
+  <rect x="188" y="195" width="24" height="22" rx="4" fill="#e8b89a" opacity="0.7"/>
+  <!-- head circle -->
+  <circle cx="200" cy="148" r="56" fill="#e8b89a" opacity="0.75"/>
+  <!-- hair -->
+  <path d="M 148 138 Q 150 95 200 90 Q 250 95 252 138 Q 245 108 200 104 Q 155 108 148 138 Z" fill="#3a2812" opacity="0.85"/>
+  <path d="M 148 130 Q 146 110 152 100 Q 158 90 170 85" stroke="#3a2812" stroke-width="8" fill="none" opacity="0.85" stroke-linecap="round"/>
+  <!-- face shading -->
+  <ellipse cx="180" cy="148" rx="8" ry="6" fill="#d4a088" opacity="0.3"/>
+  <ellipse cx="220" cy="148" rx="8" ry="6" fill="#d4a088" opacity="0.3"/>
+  <!-- eyes -->
+  <ellipse cx="186" cy="143" rx="5" ry="4" fill="#2a1a0a" opacity="0.9"/>
+  <ellipse cx="214" cy="143" rx="5" ry="4" fill="#2a1a0a" opacity="0.9"/>
+  <ellipse cx="187.5" cy="141.5" rx="2" ry="1.5" fill="white" opacity="0.5"/>
+  <ellipse cx="215.5" cy="141.5" rx="2" ry="1.5" fill="white" opacity="0.5"/>
+  <!-- eyebrows -->
+  <path d="M 180 136 Q 186 132 193 135" stroke="#3a2812" stroke-width="2" fill="none" opacity="0.8" stroke-linecap="round"/>
+  <path d="M 207 135 Q 214 132 220 136" stroke="#3a2812" stroke-width="2" fill="none" opacity="0.8" stroke-linecap="round"/>
+  <!-- nose -->
+  <path d="M 200 148 Q 196 158 198 162 Q 200 164 202 162 Q 204 158 200 148" fill="#c89070" opacity="0.5"/>
+  <!-- smile -->
+  <path d="M 191 168 Q 200 176 209 168" stroke="#c07858" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <!-- suit jacket -->
+  <path d="M 50 320 Q 65 232 140 222 L 178 210 L 200 240 L 222 210 L 260 222 Q 335 232 350 320 Z" fill="#1e1a5a" opacity="0.9"/>
+  <!-- lapels -->
+  <path d="M 178 210 L 162 235 L 200 248 Z" fill="#2a2570" opacity="0.9"/>
+  <path d="M 222 210 L 238 235 L 200 248 Z" fill="#2a2570" opacity="0.9"/>
+  <!-- shirt between lapels -->
+  <path d="M 162 235 L 200 248 L 238 235 L 230 268 L 200 272 L 170 268 Z" fill="rgba(255,255,255,0.12)"/>
+  <!-- pocket square hint -->
+  <rect x="92" y="248" width="18" height="10" rx="2" fill="#F7931E" opacity="0.4" transform="rotate(-5 101 253)"/>
+  <!-- "Upload Photo" text label -->
+  <rect x="130" y="290" width="140" height="22" rx="11" fill="rgba(247,147,30,0.15)"/>
+  <text x="200" y="305" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#F7931E" opacity="0.8" letter-spacing="1">UPLOAD YOUR PHOTO</text>
+</svg>`;
+const mockUrl = 'data:image/svg+xml,' + encodeURIComponent(mockSvg);
+
+/* ── Default placeholders per mode ──── */
+const stripsMock = ''; // no bundled fallback photo — always injected at runtime
+let currentMode = 'para';
+let uploadedPhoto = null; // base64 of user-uploaded photo
+
+/* ── Apply photo to all modes ────────── */
+function applyPhoto(url) {
+  uploadedPhoto = url;
+  $('pm-main').style.backgroundImage   = `url("${url}")`;
+  $('ps1').style.backgroundImage        = `url("${url}")`;
+  $('ps2').style.backgroundImage        = `url("${url}")`;
+  $('ps3').style.backgroundImage        = `url("${url}")`;
+  $('ps4').style.backgroundImage        = `url("${url}")`;
+  $('pm-circle').style.backgroundImage  = `url("${url}")`;
+}
+
+/* Apply default per-mode placeholder */
+function applyDefaultPlaceholder(mode) {
+  if (uploadedPhoto) { applyPhoto(uploadedPhoto); return; }
+  if (mode === 'strips') {
+    $('ps1').style.backgroundImage = `url("${stripsMock}")`;
+    $('ps2').style.backgroundImage = `url("${stripsMock}")`;
+    $('ps3').style.backgroundImage = `url("${stripsMock}")`;
+    $('ps4').style.backgroundImage = `url("${stripsMock}")`;
+  } else if (mode === 'para') {
+    $('pm-main').style.backgroundImage = `url("${mockUrl}")`;
+  } else if (mode === 'circle') {
+    $('pm-circle').style.backgroundImage = `url("${mockUrl}")`;
+  }
+}
+
+/* ── Set photo mode ──────────────────── */
+function setMode(btn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const mode = btn.dataset.mode;
+  currentMode = mode;
+  document.querySelectorAll('.strips-wrap').forEach(w => w.classList.remove('active'));
+  $('wrap-' + mode).classList.add('active');
+  applyDefaultPlaceholder(mode);
+  replayMode(mode);
+}
+
+/* ── Sync preview ────────────────────── */
+function sync() {
+  const n    = $('fn').value    || 'Your Name';
+  const r    = $('fr').value    || 'Your Title';
+  const c    = $('fc').value    || 'Your Company';
+  const e    = $('fe').value    || '';
+  const w    = $('fw').value    || '';
+  const l    = $('fli').value   || '';
+  const addr = $('faddr').value || '';
+
+  $('pv-name').textContent  = n;
+  $('pv-role').textContent  = r;
+  $('pv-co').textContent    = c;
+  $('pv-email').textContent = e;
+  $('pv-ea').href           = 'mailto:' + e;
+  $('si-li').href           = fmtUrl(l);
+  $('si-web').href          = fmtUrl(w);
+  $('si-mail').href         = 'mailto:' + e;
+  $('circle-label').textContent = c || 'Your Company';
+  $('pv-addr').textContent  = addr;
+
+  if (uploadedPhoto) {
+    applyPhoto(uploadedPhoto);
+  } else {
+    applyDefaultPlaceholder(currentMode);
+  }
+}
+
+/* ── Photo upload ────────────────────── */
+function onPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    uploadedPhoto = ev.target.result;
+    photoIsPersonal = true;
+    applyPhoto(uploadedPhoto);
+    $('ul-lbl').textContent = file.name + ' — click to change';
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── Replay animation ────────────────── */
+function replayMode(mode) {
+  let targets;
+  if (mode === 'para') {
+    targets = document.querySelectorAll('.photo-main,.photo-blue,.photo-orange');
+  } else if (mode === 'strips') {
+    targets = document.querySelectorAll('.strip-1,.strip-2,.strip-3,.strip-4');
+  } else {
+    targets = document.querySelectorAll('.circle-img,.c-ring,.circle-label');
+  }
+  targets.forEach(el => { el.style.animation = 'none'; });
+  void $('sig-card').offsetHeight;
+  requestAnimationFrame(() => targets.forEach(el => { el.style.animation = ''; }));
+}
+
+function replay() {
+  const infoEls = document.querySelectorAll('.sig-logo,.sig-name,.sig-role,.sig-details');
+  infoEls.forEach(el => { el.style.animation = 'none'; });
+  replayMode(currentMode);
+  void $('sig-card').offsetHeight;
+  requestAnimationFrame(() => infoEls.forEach(el => { el.style.animation = ''; }));
+}
+
+/* ── Instructions tabs ───────────────── */
+function showTab(btn, id) {
+  document.querySelectorAll('.inst-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.inst-body').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  $('inst-' + id).classList.add('active');
+}
+
+/* ── Init ────────────────────────────── */
+applyDefaultPlaceholder('para');
+
+/* ── Copy HTML ───────────────────────── */
+function getSignatureHTML() {
+  const n    = $('fn').value    || '';
+  const r    = $('fr').value    || '';
+  const c    = $('fc').value    || '';
+  const e    = $('fe').value    || '';
+  const w    = $('fw').value    || '';
+  const l    = $('fli').value   || '';
+  const addr = $('faddr').value || '';
+  const webUrl = fmtUrl(w);
+  const liUrl  = fmtUrl(l);
+
+  // Profile Photo: fallback to Uploaded base64
+  let photoSource = '';
+  if (uploadedPhoto) {
+    photoSource = uploadedPhoto;
+  }
+
+  // Initials box if no photo
+  const initial = (n.trim().charAt(0) || 'P').toUpperCase();
+  const photoCell = photoSource
+    ? `<img src="${photoSource}" width="65" height="65" style="border-radius:50%;display:block;object-fit:cover;width:65px;height:65px;" alt="${n}">`
+    : `<div style="width:65px;height:65px;border-radius:50%;background:#1B1464;display:table-cell;text-align:center;vertical-align:middle;font-family:Arial,sans-serif;font-size:24px;font-weight:700;color:#F7931E;">${initial}</div>`;
+
+  // Logo: default hosted logo (none bundled — set via config)
+  const hostedLogo = '';
+
+  // Hosted social icons matching branding color #F7931E
+  const liPng = 'https://img.icons8.com/ios-filled/32/F7931E/linkedin.png';
+  const webPng = 'https://img.icons8.com/ios-filled/32/F7931E/globe.png';
+
+  const html = `<!-- Email Signature -->
+<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;border-collapse:collapse;max-width:450px;">
+<tr>
+  <td style="padding-right:14px;border-right:2px solid #F7931E;vertical-align:middle;text-align:center;width:80px;">
+    <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+      <tr>
+        <td align="center" style="padding-bottom:10px;">
+          ${photoCell}
+        </td>
+      </tr>
+      <tr>
+        <td align="center">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="padding: 0 4px;">
+                <a href="${liUrl}" target="_blank" style="text-decoration:none;">
+                  <img src="${liPng}" width="16" height="16" alt="LinkedIn" style="display:block;border:0;">
+                </a>
+              </td>
+              <td style="padding: 0 4px;">
+                <a href="${webUrl}" target="_blank" style="text-decoration:none;">
+                  <img src="${webPng}" width="16" height="16" alt="Website" style="display:block;border:0;">
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td>
+  <td style="padding-left:14px;vertical-align:middle;">
+    <div style="margin-bottom:6px;">
+      <img src="${hostedLogo}" height="24" alt="Company logo" style="display:block;height:24px;border:0;">
+    </div>
+    <div style="font-size:15px;font-weight:700;color:#1B1464;margin-bottom:1px;font-family:Arial,sans-serif;">${n}</div>
+    <div style="font-size:11px;color:#F7931E;margin-bottom:8px;font-family:Arial,sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">${r}</div>
+    <table cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #E9EBF2;padding-top:6px;width:100%;">
+      <tr>
+        <td style="padding-bottom:3px;font-size:11px;color:#5A6478;font-family:Arial,sans-serif;line-height:1.2;">
+          <span style="color:#F7931E;font-weight:bold;">&#127970;</span>&nbsp; ${c}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-bottom:3px;font-size:11px;color:#5A6478;font-family:Arial,sans-serif;line-height:1.2;">
+          <span style="color:#F7931E;font-weight:bold;">&#9993;</span>&nbsp; <a href="mailto:${e}" style="color:#5A6478;text-decoration:none;">${e}</a>
+        </td>
+      </tr>
+      ${addr ? `<tr>
+        <td style="font-size:11px;color:#5A6478;font-family:Arial,sans-serif;line-height:1.2;">
+          <span style="color:#F7931E;font-weight:bold;">&#128205;</span>&nbsp; ${addr}
+        </td>
+      </tr>` : ''}
+    </table>
+  </td>
+</tr>
+</table>`;
+
+  return html;
+}
+
+function copyRichText() {
+  const html = getSignatureHTML();
+
+  // Modern Clipboard API to copy as rich text
+  const blobHtml = new Blob([html], { type: 'text/html' });
+  const plainText = html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  const blobText = new Blob([plainText], { type: 'text/plain' });
+
+  const item = new ClipboardItem({
+    'text/html': blobHtml,
+    'text/plain': blobText
+  });
+
+  navigator.clipboard.write([item]).then(() => {
+    const btn = $('copy-rt-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied for Gmail!';
+    btn.style.background = '#16A34A';
+    btn.style.borderColor = '#16A34A';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+    }, 2200);
+  }).catch((err) => {
+    console.error("Rich text copy failed:", err);
+    alert('Could not copy as Rich Text automatically. Please copy the Raw HTML code instead or grant clipboard permissions.');
+  });
+}
+
+function copyHTMLCode() {
+  const html = getSignatureHTML();
+
+  navigator.clipboard.writeText(html).then(() => {
+    const btn = $('copy-code-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Code Copied!';
+    btn.style.background = '#16A34A';
+    btn.style.borderColor = '#16A34A';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+    }, 2200);
+  }).catch(() => {
+    alert('Please allow clipboard access, then try again.');
+  });
+}
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GIF STUDIO — Canvas renderer + GIF89a encoder
+   No external deps, no Web Workers, no CORS issues.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const GIF_W = 548, GIF_H = 170;
+
+/* ── Easing ── */
+const ease3  = t => 1 - Math.pow(1-t, 3);
+const ease4  = t => t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const c01    = t => t<0?0:t>1?1:t;
+
+/* ── Animation state at time t ms ── */
+function gifAnimState(t, mode) {
+  const fu = (s,d) => { const p=ease3(c01((t-s)/d)); return {op:p, ty:8*(1-p)}; };
+  const fs = (s,d) => { const p=ease4(c01((t-s)/d)); return {op:p, tx:16*(1-p)}; };
+  const info = { logo:fu(0,550), name:fu(100,550), role:fu(200,550), det:fu(310,550) };
+  let ph = {};
+  if (mode==='para') {
+    ph.orange=fs(280,450); ph.blue=fs(380,450); ph.main=fs(520,550);
+    const st=c01((t-2000)/1400); ph.shimX = st<1 ? -1+st*2 : 1; // -1..1 as fraction of photoW
+  } else if (mode==='strips') {
+    ph.s=[fs(500,400),fs(680,400),fs(860,400),fs(1040,400)];
+    const st=c01((t-2200)/1400); ph.shimX = st<1 ? -1+st*2 : 1;
+  } else {
+    const ct=c01((t-500)/500);
+    ph.cOp=ease3(ct); ph.cSc=0.82+0.18*ease3(ct);
+    const r1=((Math.max(0,t-1300))%2600)/2600, r2=((Math.max(0,t-1900))%2600)/2600;
+    ph.r1Op=Math.max(0,0.75-0.75*r1); ph.r1Sc=1+0.55*r1;
+    ph.r2Op=Math.max(0,0.75-0.75*r2); ph.r2Sc=1+0.55*r2;
+    const lt=c01((t-1100)/400); ph.lOp=ease3(lt); ph.lTy=8*(1-ease3(lt));
+  }
+  return { info, ph };
+}
+
+/* ── Draw one frame ── */
+function gifDrawFrame(cv, t, mode, photoImg, logoImg) {
+  const ctx = cv.getContext('2d');
+  const W=GIF_W, H=GIF_H;
+  const { info, ph } = gifAnimState(t, mode);
+
+  // White background
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+
+  // Card shadow / border box
+  ctx.save();
+  ctx.shadowColor='rgba(27,20,100,0.12)'; ctx.shadowBlur=16;
+  ctx.fillStyle='#ffffff';
+  rrect(ctx,1,1,W-2,H-2,10); ctx.fill();
+  ctx.restore();
+
+  // Sidebar background
+  ctx.fillStyle='#FAFBFD';
+  rrectLeft(ctx,0,0,50,H,10); ctx.fill();
+  // Sidebar border
+  ctx.strokeStyle='#ECEEF3'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(50.5,0); ctx.lineTo(50.5,H); ctx.stroke();
+
+  // Sidebar icon circles
+  const iconYs=[H/2-26, H/2, H/2+26];
+  iconYs.forEach(iy=>{
+    ctx.fillStyle='#D5DCE8';
+    ctx.beginPath(); ctx.arc(25,iy,9,0,Math.PI*2); ctx.fill();
+  });
+
+  /* ── Info column ── */
+  const IX=62, maxW=245;
+  let iy=18;
+
+  // Logo
+  ctx.save();
+  ctx.globalAlpha=info.logo.op;
+  ctx.translate(0, info.logo.ty);
+  if (logoImg && logoImg.naturalWidth>0) {
+    const lh=20, lw=lh*(logoImg.naturalWidth/logoImg.naturalHeight);
+    try { ctx.drawImage(logoImg, IX, iy, Math.min(lw,120), lh); } catch(e){}
+  } else {
+    ctx.fillStyle='#F7931E'; ctx.font='bold 11px Arial';
+    ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText('', IX, iy+2);
+  }
+  ctx.restore(); iy+=28;
+
+  // Name
+  ctx.save(); ctx.globalAlpha=info.name.op; ctx.translate(0,info.name.ty);
+  ctx.fillStyle='#1B1464'; ctx.font='bold 15px Arial';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(ellipsis(ctx, document.getElementById('fn').value||'Your Name', maxW), IX, iy);
+  ctx.restore(); iy+=19;
+
+  // Role
+  ctx.save(); ctx.globalAlpha=info.role.op; ctx.translate(0,info.role.ty);
+  ctx.fillStyle='#F7931E'; ctx.font='600 9px Arial';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(ellipsis(ctx,(document.getElementById('fr').value||'Title').toUpperCase(),maxW), IX, iy);
+  ctx.restore(); iy+=16;
+
+  // Divider
+  ctx.save(); ctx.globalAlpha=info.det.op;
+  ctx.strokeStyle='#E9EBF2'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(IX,iy); ctx.lineTo(IX+maxW,iy); ctx.stroke(); iy+=8;
+
+  // Detail rows — no emoji (unreliable on canvas); use coloured dots instead
+  ctx.font='10px Arial'; ctx.textAlign='left'; ctx.textBaseline='top';
+  const dRows=[
+    document.getElementById('fc').value,
+    document.getElementById('fe').value,
+    document.getElementById('faddr').value,
+  ].filter(Boolean);
+  dRows.forEach((row,ri)=>{
+    ctx.fillStyle='#F7931E';
+    ctx.beginPath(); ctx.arc(IX+4, iy+5, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#5A6478';
+    ctx.fillText(ellipsis(ctx,row,maxW-12), IX+12, iy);
+    iy+=15;
+  });
+  ctx.restore();
+
+  /* ── Photo column ── */
+  const PX=316, PW=W-PX;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(PX,0,PW,H); ctx.clip();
+
+  if (mode==='para') {
+    // Main photo parallelogram
+    if (ph.main.op>0) {
+      ctx.save(); ctx.globalAlpha=ph.main.op; ctx.translate(ph.main.tx,0);
+      paraPath(ctx,PX,0,PW,H,0.16,1.0);
+      if (photoImg&&photoImg.naturalWidth>0){ctx.save();ctx.clip();ctx.drawImage(photoImg,PX,0,PW,H);ctx.restore();}
+      else{const g=ctx.createLinearGradient(PX,0,W,H);g.addColorStop(0,'#1a1650');g.addColorStop(1,'#26206e');ctx.fillStyle=g;ctx.fill();}
+      ctx.restore();
+    }
+    // Shimmer
+    if (t>2000&&ph.main.op>0.8) {
+      ctx.save();
+      paraPath(ctx,PX,0,PW,H,0.16,1.0); ctx.clip();
+      const sx=PX+(ph.shimX*0.5+0.5)*PW;
+      const sg=ctx.createLinearGradient(sx-40,0,sx+40,0);
+      sg.addColorStop(0,'rgba(255,255,255,0)');
+      sg.addColorStop(0.5,'rgba(255,255,255,0.18)');
+      sg.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=sg; paraPath(ctx,PX,0,PW,H,0.16,1.0); ctx.fill();
+      ctx.restore();
+    }
+    // Blue accent
+    if (ph.blue.op>0){
+      ctx.save();ctx.globalAlpha=ph.blue.op;ctx.translate(ph.blue.tx,0);
+      paraPath(ctx,PX,0,PW,H,0.16,0.32);ctx.fillStyle='#1B1464';ctx.fill();ctx.restore();
+    }
+    // Orange accent
+    if (ph.orange.op>0){
+      ctx.save();ctx.globalAlpha=ph.orange.op;ctx.translate(ph.orange.tx,0);
+      paraPath(ctx,PX,0,PW,H,0.16,0.24);ctx.fillStyle='#F7931E';ctx.fill();ctx.restore();
+    }
+
+  } else if (mode==='strips') {
+    const sdef=[[0.05,0.23,0.48,0.30],[0.27,0.45,0.70,0.52],[0.49,0.67,0.92,0.74],[0.71,0.89,1.14,0.96]];
+    sdef.forEach(([tl,tr,br,bl],si)=>{
+      const a=ph.s[si]; if(!a||a.op<=0) return;
+      ctx.save(); ctx.globalAlpha=a.op; ctx.translate(a.tx,0);
+      ctx.beginPath();
+      ctx.moveTo(PX+tl*PW,0);ctx.lineTo(PX+tr*PW,0);ctx.lineTo(PX+br*PW,H);ctx.lineTo(PX+bl*PW,H);
+      ctx.closePath();
+      if (photoImg&&photoImg.naturalWidth>0){ctx.save();ctx.clip();ctx.drawImage(photoImg,PX,0,PW,H);ctx.restore();}
+      else{ctx.fillStyle='#1B1464';ctx.fill();}
+      ctx.restore();
+    });
+
+  } else {
+    const cx2=PX+PW/2, cy2=H/2-4, r=46;
+    // Shadow
+    if(ph.cOp>0){
+      ctx.save();ctx.globalAlpha=ph.cOp*0.35;
+      const sg=ctx.createRadialGradient(cx2,cy2+r+8,2,cx2,cy2+r+8,32);
+      sg.addColorStop(0,'rgba(27,20,100,0.6)');sg.addColorStop(1,'rgba(27,20,100,0)');
+      ctx.fillStyle=sg;ctx.beginPath();ctx.ellipse(cx2,cy2+r+8,32,8,0,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    // Circle photo
+    if(ph.cOp>0){
+      ctx.save();ctx.globalAlpha=ph.cOp;
+      ctx.translate(cx2,cy2);ctx.scale(ph.cSc,ph.cSc);
+      ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.clip();
+      if(photoImg&&photoImg.naturalWidth>0) ctx.drawImage(photoImg,-r,-r,r*2,r*2);
+      else{ctx.fillStyle='#1B1464';ctx.fill();}
+      ctx.restore();
+      // Border ring
+      ctx.save();ctx.globalAlpha=ph.cOp;
+      ctx.translate(cx2,cy2);ctx.scale(ph.cSc,ph.cSc);
+      ctx.strokeStyle='#F7931E';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
+    }
+    // Pulse rings
+    [[ph.r1Sc,ph.r1Op],[ph.r2Sc,ph.r2Op]].forEach(([sc,op])=>{
+      if(!op||op<=0) return;
+      ctx.save();ctx.globalAlpha=op;ctx.strokeStyle='#F7931E';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(cx2,cy2,r*sc,0,Math.PI*2);ctx.stroke();ctx.restore();
+    });
+    // Label
+    if(ph.lOp>0){
+      ctx.save();ctx.globalAlpha=ph.lOp;ctx.translate(0,ph.lTy);
+      ctx.fillStyle='#F7931E';ctx.font='500 7.5px Arial';
+      ctx.textAlign='center';ctx.textBaseline='bottom';
+      ctx.fillText((document.getElementById('fc').value||'').toUpperCase(),cx2,H-7);
+      ctx.restore();
+    }
+  }
+
+  ctx.restore(); // end photo clip
+
+  // Card border
+  ctx.strokeStyle='#E9EBF2'; ctx.lineWidth=1;
+  rrect(ctx,0.5,0.5,W-1,H-1,10); ctx.stroke();
+}
+
+/* ── Canvas helpers ── */
+function rrect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+function rrectLeft(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w,y);ctx.lineTo(x+w,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+function paraPath(ctx,x,y,w,h,lf,rf){
+  ctx.beginPath();
+  ctx.moveTo(x+lf*w,y);ctx.lineTo(x+rf*w,y);
+  ctx.lineTo(x+(1-lf)*w,h);ctx.lineTo(x+(1-rf)*w,h);
+  ctx.closePath();
+}
+function ellipsis(ctx,text,maxW){
+  if(ctx.measureText(text).width<=maxW) return text;
+  while(text.length>1 && ctx.measureText(text+'…').width>maxW) text=text.slice(0,-1);
+  return text+'…';
+}
+
+function gifLoadImage(src) {
+  return new Promise(res=>{
+    if(!src){res(null);return;}
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>res(img); img.onerror=()=>res(null);
+    img.src=src;
+  });
+}
+
+/* ── Colour quantiser ── */
+function gifQuantise(rgba, n) {
+  // 5-bit per channel histogram (32^3 = 32768 buckets)
+  const freq = new Uint32Array(32768);
+  const colr = new Array(32768); // store a representative colour per bucket
+
+  for (let i=0;i<n;i++){
+    const a=rgba[i*4+3];
+    const r=a<64?255:rgba[i*4], g=a<64?255:rgba[i*4+1], b=a<64?255:rgba[i*4+2];
+    const k=((r>>3)<<10)|((g>>3)<<5)|(b>>3);
+    freq[k]++;
+    if(!colr[k]) colr[k]=[r,g,b];
+  }
+
+  // Collect non-zero buckets, sort by frequency desc
+  const entries=[];
+  for(let k=0;k<32768;k++) if(freq[k]>0) entries.push([k,freq[k],colr[k]]);
+  entries.sort((a,b)=>b[1]-a[1]);
+
+  // Take top 255 colours + white at index 0
+  const palette=[[255,255,255]];
+  for(let i=0;i<Math.min(255,entries.length);i++) palette.push(entries[i][2]);
+
+  // Pad to next power of 2
+  let ctSize=2; while(ctSize<palette.length) ctSize*=2;
+  while(palette.length<ctSize) palette.push([0,0,0]);
+  const ctBits=Math.round(Math.log2(ctSize)); // exact since ctSize is power of 2
+
+  // Build fast nearest-colour index (reuse the histogram bucket → palette index)
+  const bucketToPal = new Uint8Array(32768);
+  // For each bucket colour, find nearest palette entry
+  for(let k=0;k<32768;k++){
+    if(!freq[k]) continue;
+    const r=((k>>10)&31)<<3, g=((k>>5)&31)<<3, b=(k&31)<<3;
+    let best=0, bestD=Infinity;
+    for(let pi=0;pi<palette.length;pi++){
+      const dr=r-palette[pi][0],dg=g-palette[pi][1],db=b-palette[pi][2];
+      const d=dr*dr+dg*dg+db*db;
+      if(d<bestD){bestD=d;best=pi;if(d===0)break;}
+    }
+    bucketToPal[k]=best;
+  }
+
+  // Index every pixel
+  const indexed=new Uint8Array(n);
+  for(let i=0;i<n;i++){
+    const a=rgba[i*4+3];
+    if(a<64){indexed[i]=0;continue;}
+    const r=rgba[i*4],g=rgba[i*4+1],b=rgba[i*4+2];
+    indexed[i]=bucketToPal[((r>>3)<<10)|((g>>3)<<5)|(b>>3)];
+  }
+  return {palette, indexed, ctBits};
+}
+
+/* ── LZW encoder ── */
+function gifLZW(indices, minCS) {
+  const CC=1<<minCS, EOI=CC+1;
+  const out=[]; let bits=0, buf=0, cs=minCS+1, next=EOI+1;
+  // table: Map of (prefixCode << 8 | byte) -> code
+  let tbl=new Map();
+  const reset=()=>{tbl=new Map();cs=minCS+1;next=EOI+1;};
+  const emit=code=>{
+    buf|=code<<bits; bits+=cs;
+    while(bits>=8){out.push(buf&255);buf>>=8;bits-=8;}
+  };
+  reset(); emit(CC);
+  let prefix=indices[0];
+  for(let i=1;i<indices.length;i++){
+    const k=indices[i], key=(prefix<<8)|k;
+    if(tbl.has(key)){prefix=tbl.get(key);}
+    else{
+      emit(prefix);
+      if(next<4096){
+        tbl.set(key,next++);
+        if(next>(1<<cs)&&cs<12) cs++;
+      } else {emit(CC);reset();}
+      prefix=k;
+    }
+  }
+  emit(prefix); emit(EOI);
+  if(bits>0) out.push(buf&255);
+  return out;
+}
+
+/* ── GIF89a writer ── */
+function gifEncode(quantFrames, delays, W, H) {
+  const out=[];
+  const wb=b=>out.push(b&255);
+  const ww=n=>{out.push(n&255,(n>>8)&255);};
+  const ws=s=>{for(let i=0;i<s.length;i++)out.push(s.charCodeAt(i));};
+
+  // Header
+  ws('GIF89a'); ww(W); ww(H);
+  wb(0x00); wb(0); wb(0); // no global CT
+
+  // Netscape loop (loop forever)
+  wb(0x21);wb(0xFF);wb(0x0B);
+  ws('NETSCAPE2.0');
+  wb(3);wb(1);ww(0);wb(0); // sub-block: loop count=0
+
+  for(let fi=0;fi<quantFrames.length;fi++){
+    const {palette,indexed,ctBits}=quantFrames[fi];
+    const ctEntries=1<<ctBits;
+    const delay=Math.max(2,Math.round(delays[fi]/10)); // centiseconds, min 2
+
+    // GCE
+    wb(0x21);wb(0xF9);wb(4); // ext, GCE label, 4 bytes follow
+    wb(0x00);                  // packed: disposal=do not dispose, no transparent
+    ww(delay);                 // delay centiseconds
+    wb(0);                     // transparent index (unused)
+    wb(0);                     // block terminator
+
+    // Image descriptor
+    wb(0x2C);
+    ww(0);ww(0);ww(W);ww(H);
+    wb(0x80|(ctBits-1));       // local CT, size=ctBits-1
+
+    // Local colour table
+    for(let i=0;i<ctEntries;i++){
+      const c=i<palette.length?palette[i]:[0,0,0];
+      wb(c[0]);wb(c[1]);wb(c[2]);
+    }
+
+    // Image data
+    const minCS=Math.max(2,ctBits);
+    wb(minCS);
+    const lzw=gifLZW(indexed,minCS);
+    let i=0;
+    while(i<lzw.length){
+      const len=Math.min(255,lzw.length-i);
+      wb(len);
+      for(let j=0;j<len;j++) wb(lzw[i+j]);
+      i+=len;
+    }
+    wb(0); // block terminator
+  }
+
+  wb(0x3B); // trailer
+  return new Uint8Array(out);
+}
+
+/* ── Main capture function ── */
+async function captureGIF() {
+  const btn        = document.getElementById('capture-btn');
+  const progWrap   = document.getElementById('gif-progress-wrap');
+  const progBar    = document.getElementById('gif-progress-bar');
+  const progText   = document.getElementById('gif-progress-text');
+  const resultEl   = document.getElementById('gif-result');
+  const previewCv  = document.getElementById('preview-canvas');
+
+  btn.disabled=true;
+  btn.textContent='⏳ Working…';
+  progWrap.style.display='block';
+  resultEl.style.display='none';
+
+  const setP=(pct,msg)=>{ progBar.style.width=pct+'%'; progText.textContent=msg; };
+
+  const totalMs  = parseInt(document.getElementById('gif-duration').value);
+  const fps      = parseInt(document.getElementById('gif-fps').value);
+  const nFrames  = Math.round(totalMs/1000*fps);
+  const delay    = Math.round(1000/fps); // ms
+
+  setP(3,'Loading resources…'); await yld();
+
+  const photoImg = await gifLoadImage(uploadedPhoto||null);
+  const logoImg  = await gifLoadImage(hostedLogo);
+
+  // Show the canvas preview
+  previewCv.style.display='block';
+  previewCv.width=GIF_W; previewCv.height=GIF_H;
+
+  // Phase 1: render frames to canvases
+  const rawFrames=[];
+  for(let i=0;i<nFrames;i++){
+    if(i%3===0){ setP(5+Math.round(i/nFrames*40),`Rendering frame ${i+1}/${nFrames}…`); await yld(); }
+    const t=nFrames>1?(i/(nFrames-1))*totalMs:0;
+    gifDrawFrame(previewCv, t, currentMode, photoImg, logoImg);
+    // Snapshot
+    const snap=document.createElement('canvas');
+    snap.width=GIF_W; snap.height=GIF_H;
+    snap.getContext('2d').drawImage(previewCv,0,0);
+    rawFrames.push(snap);
+  }
+
+  // Phase 2: quantise each frame
+  setP(46,'Quantising colours…'); await yld();
+  const quantFrames=[];
+  for(let i=0;i<rawFrames.length;i++){
+    if(i%4===0){ setP(46+Math.round(i/rawFrames.length*24),`Quantising ${i+1}/${rawFrames.length}…`); await yld(); }
+    const id=rawFrames[i].getContext('2d').getImageData(0,0,GIF_W,GIF_H);
+    quantFrames.push(gifQuantise(id.data, GIF_W*GIF_H));
+  }
+
+  // Phase 3: encode GIF
+  setP(70,'Encoding GIF…'); await yld();
+  const delays=rawFrames.map(()=>delay);
+  // Yield every 10 frames during LZW encoding
+  const out=[];
+  const wb=b=>out.push(b&255);
+  const ww=n=>{out.push(n&255,(n>>8)&255);};
+  const ws=s=>{for(let i=0;i<s.length;i++)out.push(s.charCodeAt(i));};
+  ws('GIF89a'); ww(GIF_W); ww(GIF_H); wb(0x00); wb(0); wb(0);
+  wb(0x21);wb(0xFF);wb(0x0B); ws('NETSCAPE2.0'); wb(3);wb(1);ww(0);wb(0);
+
+  for(let fi=0;fi<quantFrames.length;fi++){
+    if(fi%5===0){ setP(70+Math.round(fi/quantFrames.length*28),`Encoding frame ${fi+1}/${quantFrames.length}…`); await yld(); }
+    const {palette,indexed,ctBits}=quantFrames[fi];
+    const ctEntries=1<<ctBits;
+    const ds=Math.max(2,Math.round(delays[fi]/10));
+    wb(0x21);wb(0xF9);wb(4);wb(0x00);ww(ds);wb(0);wb(0);
+    wb(0x2C);ww(0);ww(0);ww(GIF_W);ww(GIF_H);
+    wb(0x80|(ctBits-1));
+    for(let i=0;i<ctEntries;i++){const c=i<palette.length?palette[i]:[0,0,0];wb(c[0]);wb(c[1]);wb(c[2]);}
+    const minCS=Math.max(2,ctBits);
+    wb(minCS);
+    const lzw=gifLZW(indexed,minCS);
+    let i=0;
+    while(i<lzw.length){const len=Math.min(255,lzw.length-i);wb(len);for(let j=0;j<len;j++)wb(lzw[i+j]);i+=len;}
+    wb(0);
+  }
+  wb(0x3B);
+
+  setP(99,'Finalising…'); await yld();
+  const bytes=new Uint8Array(out);
+  const blob=new Blob([bytes],{type:'image/gif'});
+  const url=URL.createObjectURL(blob);
+
+  document.getElementById('gif-preview').src=url;
+  document.getElementById('gif-download').href=url;
+  document.getElementById('gif-download').download='signature.gif';
+  const kb=Math.round(bytes.length/1024);
+  document.getElementById('gif-size-note').textContent=`${kb} KB · ${nFrames} frames · ${fps} fps`;
+  resultEl.style.display='block';
+  setP(100,'✓ Done!');
+  btn.disabled=false;
+  btn.textContent='📷 Capture Again';
+}
+
+function yld() { return new Promise(r=>setTimeout(r,0)); }
+
+
+</script>
+</body>
+</html>

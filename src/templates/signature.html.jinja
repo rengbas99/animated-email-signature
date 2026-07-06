@@ -1,0 +1,99 @@
+{# signature.html.jinja
+   Pure table-based email signature (v3 Card Layout) — inline CSS only.
+   Variables injected by signature_builder.py from config.json.
+   This fragment is safe to paste into any email client signature field. #}
+<table cellpadding="0" cellspacing="0" border="0" width="548" style="border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;font-family:Arial,Helvetica,sans-serif;max-width:548px;background:#ffffff;border:1px solid #E9EBF2;border-radius:10px;overflow:hidden;">
+  <tr>
+    <!-- Left Sidebar (width 50) -->
+    <td width="50" style="padding:22px 0;vertical-align:middle;width:50px;background-color:#FAFBFD;border-right:1px solid #ECEEF3;text-align:center;">
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        {% if social.linkedin or config.social.linkedin %}
+        <tr>
+          <td align="center" style="padding-bottom:18px;">
+            <a href="{{ social.linkedin or config.social.linkedin }}" target="_blank" style="text-decoration:none;display:inline-block;color:{{ brand.primary_color }};">
+              <img src="{{ linkedin_icon_url }}" width="22" height="22" alt="LinkedIn" style="display:block;border:0;outline:0;width:22px;height:22px;margin:0 auto;">
+            </a>
+          </td>
+        </tr>
+        {% endif %}
+        {% if social.website or config.social.website %}
+        <tr>
+          <td align="center" style="padding-bottom:18px;">
+            <a href="{{ social.website or config.social.website }}" target="_blank" style="text-decoration:none;display:inline-block;color:{{ brand.primary_color }};">
+              <img src="{{ website_icon_url }}" width="22" height="22" alt="Website" style="display:block;border:0;outline:0;width:22px;height:22px;margin:0 auto;">
+            </a>
+          </td>
+        </tr>
+        {% endif %}
+        {% if person.email %}
+        <tr>
+          <td align="center">
+            <a href="mailto:{{ person.email }}" style="text-decoration:none;display:inline-block;color:{{ brand.primary_color }};">
+              <img src="{{ message_icon_url }}" width="22" height="22" alt="Email" style="display:block;border:0;outline:0;width:22px;height:22px;margin:0 auto;">
+            </a>
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </td>
+    
+    <!-- Info body column -->
+    <td style="padding:20px 14px 20px 20px;vertical-align:middle;background-color:#ffffff;">
+      <div style="margin-bottom:13px;">
+        <img src="{{ logo_url }}" height="22" alt="{{ person.company }} logo" style="height:22px;width:auto;display:block;border:0;" />
+      </div>
+      <div style="font-size:18px;font-weight:700;color:{{ brand.primary_color }};letter-spacing:-0.015em;line-height:1.2;font-family:Arial,sans-serif;">{{ person.name }}</div>
+      <div style="font-size:11.5px;color:{{ brand.accent_color }};margin:3px 0 13px;font-family:Arial,sans-serif;">{{ person.title }}</div>
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+        {% if person.company %}
+        <tr>
+          <td width="13" style="width:13px;{% if person.email or person.phone or person.address %}padding-bottom:5px;{% endif %}vertical-align:middle;text-align:center;">
+            <img src="{{ office_icon_url }}" width="12" height="12" style="display:block;border:0;outline:0;" alt="">
+          </td>
+          <td style="padding-left:7px;{% if person.email or person.phone or person.address %}padding-bottom:5px;{% endif %}font-size:11.5px;color:#5A6478;font-family:Arial,sans-serif;line-height:1.4;vertical-align:middle;">
+            {{ person.company }}
+          </td>
+        </tr>
+        {% endif %}
+        
+        {% if person.email %}
+        <tr>
+          <td width="13" style="width:13px;{% if person.phone or person.address %}padding-bottom:5px;{% endif %}vertical-align:middle;text-align:center;">
+            <img src="{{ mail_icon_url }}" width="12" height="12" style="display:block;border:0;outline:0;" alt="">
+          </td>
+          <td style="padding-left:7px;{% if person.phone or person.address %}padding-bottom:5px;{% endif %}font-size:11.5px;color:#5A6478;font-family:Arial,sans-serif;line-height:1.4;vertical-align:middle;">
+            <a href="mailto:{{ person.email }}" style="color:#5A6478;text-decoration:none;">{{ person.email }}</a>
+          </td>
+        </tr>
+        {% endif %}
+        
+        {% if person.phone %}
+        <tr>
+          <td width="13" style="width:13px;{% if person.address %}padding-bottom:5px;{% endif %}vertical-align:middle;text-align:center;">
+            <img src="{{ phone_icon_url }}" width="12" height="12" style="display:block;border:0;outline:0;" alt="">
+          </td>
+          <td style="padding-left:7px;{% if person.address %}padding-bottom:5px;{% endif %}font-size:11.5px;color:#5A6478;font-family:Arial,sans-serif;line-height:1.4;vertical-align:middle;">
+            <a href="tel:{{ person.phone }}" style="color:#5A6478;text-decoration:none;">{{ person.phone }}</a>
+          </td>
+        </tr>
+        {% endif %}
+        
+        {% if person.address %}
+        <tr>
+          <td width="13" style="width:13px;vertical-align:middle;text-align:center;">
+            <img src="{{ map_icon_url }}" width="12" height="12" style="display:block;border:0;outline:0;" alt="">
+          </td>
+          <td style="padding-left:7px;font-size:11.5px;color:#5A6478;font-family:Arial,sans-serif;line-height:1.3;vertical-align:middle;">
+            {{ person.address }}
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </td>
+    
+    <!-- Photo column -->
+    <td width="{% if photo_is_circle %}170{% else %}200{% endif %}" style="padding:0;vertical-align:top;width:{% if photo_is_circle %}170{% else %}200{% endif %}px;background-color:#ffffff;">
+      <img src="{{ photo_url }}" width="{% if photo_is_circle %}170{% else %}200{% endif %}" height="{% if photo_is_circle %}170{% else %}{{ photo_h }}{% endif %}" alt="{{ person.name }}" style="display:block;border:0;outline:0;width:{% if photo_is_circle %}170{% else %}200{% endif %}px;height:{% if photo_is_circle %}170{% else %}{{ photo_h }}px{% endif %};">
+    </td>
+  </tr>
+</table>
